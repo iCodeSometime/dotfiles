@@ -1,5 +1,4 @@
 --[[
-
 =====================================================================
 ==================== READ THIS BEFORE CONTINUING ====================
 =====================================================================
@@ -91,6 +90,10 @@ do
   -- disable netrw (nvim-tree recommednation)
   vim.g.loaded_netrw = 1
   vim.g.loaded_netrwPlugin = 1
+end
+
+local function gh(repo)
+  return "https://github.com/" .. repo
 end
 
 -- ============================================================
@@ -253,8 +256,12 @@ do
   -- vim.keymap.set("n", "<C-j>", "<C-w><C-j>", { desc = "Move focus to the lower window" })
   -- vim.keymap.set("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper window" })
 
-  -- macs bindings in insert mode only. Ctrl-U and Ctrl-T stay as Neovim has them.
-  -- Ctrl-Y pastes the default register (the last Ctrl-K / Alt-D delete).
+  -- emacs keybindings, only in insert mode
+
+  vim.pack.add({ gh("millerjason/neovimacs.nvim") })
+  local killring = require("neovimacs.killring")
+  killring.setup({ VM_KillRingMax = 30 })
+
   vim.keymap.set("i", "<C-b>", "<Left>", { desc = "Emacs: back one character" })
   vim.keymap.set("i", "<C-f>", "<Right>", { desc = "Emacs: forward one character" })
   vim.keymap.set("i", "<C-p>", "<Up>", { desc = "Emacs: previous line" })
@@ -264,11 +271,11 @@ do
   vim.keymap.set("i", "<M-b>", "<C-o>b", { desc = "Emacs: back one word" })
   vim.keymap.set("i", "<M-f>", "<C-o>w", { desc = "Emacs: forward one word" })
   vim.keymap.set("i", "<C-d>", "<Del>", { desc = "Emacs: delete character forward" })
-  vim.keymap.set("i", "<M-d>", "<C-o>dw", { desc = "Emacs: delete word forward" })
-  vim.keymap.set("i", "<M-BS>", "<C-w>", { desc = "Emacs: delete word backwards"})
-  vim.keymap.set("i", "<C-k>", "<C-o>D", { desc = "Emacs: kill to end of line" })
-  vim.keymap.set("i", "<C-y>", "<C-r>", { desc = "Emacs: yank" })
-  -- Terminal sends Ctrl+_ as Ctrl+Shift+- (modifyOtherKeys), not <C-_> (ASCII 0x1f).
+  vim.keymap.set("i", "<M-d>", killring.kill_word, { desc = "Emacs kill word"})
+  vim.keymap.set("i", "<M-BS>", killring.backward_kill_word, { desc = "Emacs: backward kill word" })
+  vim.keymap.set("i", "<C-k>", killring.kill_line, { desc = "Emacs: kill line" })
+  vim.keymap.set("i", "<C-y>", killring.yank, { desc = "Emacs: yank" })
+  vim.keymap.set("i", "<M-y>", killring.yank_pop, { desc = "Emacs: yank-pop" })
   vim.keymap.set("i", "<C-S-->", "<C-o>u", { desc = "Emacs: undo" })
   vim.keymap.set("i", "<C-x><C-s>", "<Cmd>write<CR>", { desc = "Emacs: save file" })
   vim.keymap.set("i", "<M-S-.>", "<C-o>G", { desc = "Emacs: end of buffer"})
@@ -367,14 +374,6 @@ do
       end
     end,
   })
-end
-
---- Because most plugins are hosted on GitHub, you can use the helper
---- function to have less repetition in the following sections.
----@param repo string
----@return string
-local function gh(repo)
-  return "https://github.com/" .. repo
 end
 
 -- ============================================================
