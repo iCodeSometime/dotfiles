@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+._*
+
+# Neovim / Vim swap, backup, undo
+*.swp
+*.swo
+*.swn
+*~
+*.un~
+Session.vim
+Sessionx.vim
+.netrwhist
+tags
+.nvim.lua
+.nvimrc
+.exrc
+
+# Editor / temp
+#*.nu#
