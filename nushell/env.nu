@@ -72,6 +72,8 @@ $env.DOTNET_ROOT = $"($env.HOME)/.dotnet"
 
 
 # ---------------------------------------------------------------------------
-# bash-like aliases
+# aliases
 # ---------------------------------------------------------------------------
 alias fg = job unfreeze
+alias dot = git --git-dir ~/code/dotfiles/.git --work-tree ~/code/dotfiles
+
