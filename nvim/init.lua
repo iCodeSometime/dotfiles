@@ -1255,11 +1255,11 @@ do
     vim.keymap.set("n", "<leader>B", function()
       dap.set_breakpoint(vim.fn.input("Condition: "))
     end, { desc = "Debug: Conditional Breakpoint" })
-    vim.keymap.set("n", "<leader>dr", dap.repl.open,    { desc = "Debug: Open REPL" })
-    vim.keymap.set("n", "<leader>dl", dap.run_last,     { desc = "Debug: Run Last" })
+    vim.keymap.set("n", "<leader>dq", dap.disconnect, { desc = "Debug: Disconnect debugger" })
+    vim.keymap.set("n", "<leader>dr", dap.repl.open, { desc = "Debug: Open REPL" })
+    vim.keymap.set("n", "<leader>dl", dap.run_last,  { desc = "Debug: Run Last" })
     vim.keymap.set("n", "<leader>du", require("dapui").toggle, { desc = "Debug: Toggle UI" })
-    vim.keymap.set("n", "<leader>c", function()
-      local dap = require("dap")
+    vim.keymap.set("n", {"<leader>dc", "<leader>ds"}, function()
       if dap.session() then
         dap.continue()
         return
