@@ -43,13 +43,11 @@ What is Kickstart?
 Kickstart Guide:
 
   TODO: The very first thing you should do is to run the command `:Tutor` in Neovim.
-
     If you don't know what this means, type the following:
       - <escape key>
       - :
       - Tutor
       - <enter key>
-
     (If you already know the Neovim basics, you can skip this step.)
 
   Once you've completed that, you can continue working through **AND READING** the rest
@@ -69,8 +67,7 @@ Kickstart Guide:
     These are hints about where to find more information about the relevant settings,
     plugins or Neovim features used in Kickstart.
 
-   NOTE: Look for lines like this
-
+  NOTE: Look for lines like this
     Throughout the file. These are for you, the reader, to help you understand what is happening.
     Feel free to delete them once you know what you're doing, but they should serve as a guide
     for when you are first encountering a few different constructs in your Neovim config.
@@ -90,6 +87,8 @@ do
   -- disable netrw (nvim-tree recommednation)
   vim.g.loaded_netrw = 1
   vim.g.loaded_netrwPlugin = 1
+
+  vim.opt.wrap = false
 end
 
 local function gh(repo)
@@ -992,6 +991,9 @@ do
       -- See `:help blink-cmp-config-keymap` for defining your own keymap
       preset = "super-tab",
       ["<C-k>"] = false,
+      -- <C-p>/<C-n> are emacs previous/next line, not completion.
+      ["<C-p>"] = false,
+      ["<C-n>"] = false,
 
       -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
       --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
@@ -1248,18 +1250,70 @@ do
     dap.listeners.before.event_terminated.dapui_config = function() dapui.close() end
     dap.listeners.before.event_exited.dapui_config = function() dapui.close() end
 
-    vim.keymap.set("n", "<leader>n", dap.step_over,         { desc = "Debug: Step Over" })
-    vim.keymap.set("n", "<leader>i", dap.step_into,         { desc = "Debug: Step Into" })
-    vim.keymap.set("n", "<leader>o", dap.step_out,          { desc = "Debug: Step Out" })
     vim.keymap.set("n", "<leader>b", dap.toggle_breakpoint, { desc = "Debug: Toggle Breakpoint" })
     vim.keymap.set("n", "<leader>B", function()
       dap.set_breakpoint(vim.fn.input("Condition: "))
     end, { desc = "Debug: Conditional Breakpoint" })
-    vim.keymap.set("n", "<leader>dq", dap.disconnect, { desc = "Debug: Disconnect debugger" })
-    vim.keymap.set("n", "<leader>dr", dap.repl.open, { desc = "Debug: Open REPL" })
-    vim.keymap.set("n", "<leader>dl", dap.run_last,  { desc = "Debug: Run Last" })
-    vim.keymap.set("n", "<leader>du", require("dapui").toggle, { desc = "Debug: Toggle UI" })
-    vim.keymap.set("n", {"<leader>dc", "<leader>ds"}, function()
+    vim.keymap.set("n", "<leader>dl", dap.run_last, { desc = "Debug: Run Last" })
+
+    -- In the REPL, Up/Down are command history. The global <C-p>/<C-n> maps are
+    -- noremap, so they would not reach those buffer maps on their own.
+    vim.api.nvim_create_autocmd("FileType", {
+      pattern = "dap-repl",
+      callback = function(ev)
+        vim.keymap.set("i", "<C-p>", function() require("dap.repl").on_up() end, { buffer = ev.buf })
+        vim.keymap.set("i", "<C-n>", function() require("dap.repl").on_down() end, { buffer = ev.buf })
+        require("dap.ext.autocompl").attach()
+      end,
+    })
+
+    local debug_key_maps = {
+      { "n", "<leader>n", dap.step_over, { desc = "Debug: Step Over" } },
+      { "n", "<leader>i", dap.step_into, { desc = "Debug: Step Into" } },
+      { "n", "<leader>o", dap.step_out, { desc = "Debug: Step Out" } },
+      { "n", "<leader>dq", dap.disconnect, { desc = "Debug: Disconnect debugger" } },
+      { "n", "<leader>r", function()
+        local win = vim.fn.bufwinid(dapui.elements.repl.buffer())
+        if win == vim.api.nvim_get_current_win() then
+          vim.cmd.wincmd("p")
+        elseif win ~= -1 then
+          vim.api.nvim_set_current_win(win)
+        end
+      end, { desc = "Debug: Toggle REPL" } },
+      { "n", "<leader>u", dapui.toggle, { desc = "Debug: Toggle UI" } },
+      { "n", "<leader>C", dap.run_to_cursor, { desc = "Debug: Run to cursor" } },
+      { { "n", "v" }, "<leader>e", function() dapui.eval() end, { desc = "Debug: Eval" } },
+      { "n", "<leader>w", function()
+        dapui.elements.watches.add(vim.fn.expand("<cword>"))
+      end, { desc = "Debug: Add word to watch" } },
+      { "v", "<leader>w", function()
+        vim.cmd('noau normal! "vy"')
+        dapui.elements.watches.add(vim.fn.getreg("v"))
+      end, { desc = "Debug: Add selection to watch" } },
+    }
+    local restore_debug_keys = nil
+    local function install_debug_keys()
+      if restore_debug_keys then
+        return
+      end
+      restore_debug_keys = require("keymap_overlay").apply(debug_key_maps)
+    end
+    local function clear_debug_keys()
+      if not restore_debug_keys then
+        return
+      end
+      restore_debug_keys()
+      restore_debug_keys = nil
+    end
+    dap.listeners.after.event_initialized.debug_keys = install_debug_keys
+    dap.listeners.before.event_terminated.debug_keys = clear_debug_keys
+    dap.listeners.before.event_exited.debug_keys = clear_debug_keys
+    dap.listeners.before.disconnect.debug_keys = clear_debug_keys
+    if dap.session() then
+      install_debug_keys()
+    end
+
+    vim.keymap.set("n", "<leader>dc", function()
       if dap.session() then
         dap.continue()
         return
@@ -1269,12 +1323,12 @@ do
       else
         dap.continue()
       end
-    end, { desc = "Debug: CMakeDebug (C/CMake) / Continue" })
+    end, { desc = "Debug: cmakedebug (c/cmake) / continue" })
   end
   --#endregion
 
   --#region cmake
-  vim.pack.add({ gh("Civitasv/cmake-tools.nvim") })
+  vim.pack.add({ gh("civitasv/cmake-tools.nvim") })
   require("cmake-tools").setup({
     cmake_build_directory = "cmake-build-debug",
     cmake_dap_configuration = {
@@ -1282,6 +1336,7 @@ do
       type = "codelldb",
       request = "launch",
       stopOnEntry = false,
+      cwd = vim.fn.getcwd(),
     },
   })
   --#endregion

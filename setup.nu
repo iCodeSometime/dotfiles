@@ -5,7 +5,7 @@ def main [] {
   let nu_dir = $"($env.HOME)/Library/Application Support/nushell"
 
   [
-    [nvim/init.lua            $"($env.HOME)/.config/nvim/init.lua"]
+    [nvim                      $"($env.HOME)/.config/nvim"]
     [nushell/config.nu        $"($nu_dir)/config.nu"]
     [nushell/env.nu           $"($nu_dir)/env.nu"]
     [nushell/scripts/job.nu   $"($nu_dir)/scripts/job.nu"]
